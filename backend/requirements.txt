@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+asyncpg
+databases
+sqlalchemy>=2.0
+aioredis
+python-dotenv
+pydantic
