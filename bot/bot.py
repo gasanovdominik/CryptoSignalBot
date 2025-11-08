@@ -5,6 +5,8 @@ from aiogram.filters import Command
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from httpx import AsyncClient
 from dotenv import load_dotenv
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # 🔹 Загружаем .env по абсолютному пути
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,6 +65,19 @@ async def cmd_signals(message: types.Message):
         except Exception as e:
             await message.answer(f"⚠️ Ошибка получения сигналов: {e}")
 
+# 🔹 🔸 Фейковый HTTP-сервер для Render (чтобы не засыпал)
+class PingHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+def run_ping_server():
+    server = HTTPServer(("0.0.0.0", 10000), PingHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_ping_server, daemon=True).start()
+
 # 🔹 Основной запуск
 async def main():
     print("🚀 Бот запущен и слушает Telegram...")
@@ -70,4 +85,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
