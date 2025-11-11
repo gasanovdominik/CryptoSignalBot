@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+python-dotenv
+psycopg2-binary
+requests
+aiogram==3.10.0
+pydantic==2.6.4
