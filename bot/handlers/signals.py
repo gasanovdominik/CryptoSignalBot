@@ -1,14 +1,35 @@
 import asyncio
+import os
+import requests
 from aiogram import Router, types, F
-from utils.mock_data import signals
+from dotenv import load_dotenv
 
 router = Router()
 
+# Загружаем BACKEND_URL из .env
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+BACKEND_URL = os.getenv("BACKEND_URL")
+
+
 @router.callback_query(F.data == "menu_signals")
 async def show_signals(callback: types.CallbackQuery):
-    # Эффект загрузки
     await callback.message.edit_text("⏳ <i>Загружаем актуальные сигналы...</i>", parse_mode="HTML")
     await asyncio.sleep(0.6)
+
+    try:
+        response = requests.get(f"{BACKEND_URL}/signals")
+        response.raise_for_status()
+        signals = response.json()
+    except Exception as e:
+        await callback.message.edit_text(
+            f"⚠️ Ошибка при загрузке сигналов:\n<code>{e}</code>",
+            parse_mode="HTML"
+        )
+        return
+
+    if not signals:
+        await callback.message.edit_text("❌ Нет доступных сигналов.", parse_mode="HTML")
+        return
 
     text = (
         "💹 <b>Актуальные торговые сигналы</b>\n\n"
@@ -28,11 +49,23 @@ async def show_signals(callback: types.CallbackQuery):
 
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
 
-# Детали одного сигнала (в стиле премиум)
+
 @router.callback_query(F.data.startswith("signal_"))
 async def show_signal_details(callback: types.CallbackQuery):
     symbol = callback.data.split("_", 1)[1]
-    s = next((sig for sig in signals if sig["symbol"] == symbol), None)
+
+    try:
+        response = requests.get(f"{BACKEND_URL}/signals")
+        response.raise_for_status()
+        signals = response.json()
+        s = next((sig for sig in signals if sig["symbol"] == symbol), None)
+    except Exception as e:
+        await callback.message.edit_text(
+            f"⚠️ Ошибка при получении сигнала:\n<code>{e}</code>",
+            parse_mode="HTML"
+        )
+        return
+
     if not s:
         await callback.answer("Сигнал не найден", show_alert=True)
         return
@@ -68,14 +101,15 @@ async def show_signal_details(callback: types.CallbackQuery):
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
 
 
-# Примитивные действия-заглушки
 @router.callback_query(F.data.startswith("remind_"))
 async def remind_signal(callback: types.CallbackQuery):
     await callback.answer("⏰ Напоминание установлено!", show_alert=True)
 
+
 @router.callback_query(F.data.startswith("fav_"))
 async def add_favorite(callback: types.CallbackQuery):
     await callback.answer("⭐ Добавлено в избранное", show_alert=True)
+
 
 
 
