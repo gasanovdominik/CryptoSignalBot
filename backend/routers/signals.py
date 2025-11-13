@@ -1,21 +1,55 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from backend import crud, schemas
-from backend.database import SessionLocal
+from ..database import get_db
+from .. import models
 
-router = APIRouter(prefix="/signals", tags=["Signals"])
+router = APIRouter(
+    prefix="/signals",
+    tags=["signals"]
+)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.get("/")
+def get_signals(
+    market: str = None,
+    symbol: str = None,
+    tf: str = None,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Signal)
 
-@router.get("/", response_model=list[schemas.SignalOut])
-def list_signals(db: Session = Depends(get_db)):
-    return crud.get_signals(db)
+    if market:
+        query = query.filter(models.Signal.market == market)
 
-@router.post("/", response_model=schemas.SignalOut)
-def create_signal(signal: schemas.SignalCreate, db: Session = Depends(get_db)):
-    return crud.create_signal(db, signal)
+    if symbol:
+        query = query.filter(models.Signal.symbol == symbol)
+
+    if tf:
+        query = query.filter(models.Signal.tf == tf)
+
+    signals = (
+        query
+        .order_by(models.Signal.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "id": s.id,
+            "market": s.market,
+            "symbol": s.symbol,
+            "direction": s.direction,
+            "tf": s.tf,
+            "entry": s.entry,
+            "sl": float(s.sl) if s.sl else None,
+            "tps": s.tps,
+            "leverage": s.leverage,
+            "risk_pct": float(s.risk_pct) if s.risk_pct else None,
+            "indicators": s.indicators,
+            "comment": s.comment,
+            "image_url": s.image_url,
+            "created_at": s.created_at,
+        }
+        for s in signals
+    ]
