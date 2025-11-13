@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 
 router = Router()
 
-# Загружаем BACKEND_URL из .env
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+# Загружаем BACKEND_URL из корневого .env
+load_dotenv()
 BACKEND_URL = os.getenv("BACKEND_URL")
+
 
 
 @router.callback_query(F.data == "menu_signals")
