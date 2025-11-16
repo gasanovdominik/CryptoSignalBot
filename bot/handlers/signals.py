@@ -1,4 +1,5 @@
 import asyncio
+import html
 import os
 import requests
 from aiogram import Router, types, F
@@ -18,8 +19,9 @@ async def show_signals(callback: types.CallbackQuery):
         response.raise_for_status()
         signals = response.json()
     except Exception as e:
+        safe_error = html.escape(str(e))
         await callback.message.edit_text(
-            f"⚠️ Ошибка при загрузке сигналов:\n<code>{e}</code>",
+            f"⚠️ Ошибка при загрузке сигналов:\n<code>{safe_error}</code>",
             parse_mode="HTML"
         )
         return
