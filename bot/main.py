@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 # === 🔧 Загружаем переменные окружения (Render берет их автоматически) ===
 load_dotenv()  # <-- ВАЖНО: теперь читает только Render ENV
 
+for k, v in os.environ.items():
+    if "BACKEND" in k.upper():
+        print("ENV FOUND:", k, repr(v))
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 BACKEND_URL = os.getenv("BACKEND_URL")
 
