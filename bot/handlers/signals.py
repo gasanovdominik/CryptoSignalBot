@@ -5,17 +5,16 @@ from aiogram import Router, types, F
 
 router = Router()
 
-# Читаем BACKEND_URL только из переменных окружения (Render)
 BACKEND_URL = os.getenv("BACKEND_URL")
 
 
 @router.callback_query(F.data == "menu_signals")
 async def show_signals(callback: types.CallbackQuery):
     await callback.message.edit_text("⏳ <i>Загружаем актуальные сигналы...</i>", parse_mode="HTML")
-    await asyncio.sleep(0.6)
+    await asyncio.sleep(0.3)
 
     try:
-        response = requests.get(f"{BACKEND_URL}/signals")
+        response = requests.get(f"{BACKEND_URL}/signals/")
         response.raise_for_status()
         signals = response.json()
     except Exception as e:
@@ -53,7 +52,7 @@ async def show_signal_details(callback: types.CallbackQuery):
     symbol = callback.data.split("_", 1)[1]
 
     try:
-        response = requests.get(f"{BACKEND_URL}/signals")
+        response = requests.get(f"{BACKEND_URL}/signals/")
         response.raise_for_status()
         signals = response.json()
         s = next((sig for sig in signals if sig["symbol"] == symbol), None)
@@ -74,8 +73,8 @@ async def show_signal_details(callback: types.CallbackQuery):
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"💰 <b>Вход:</b> <code>{s['entry']}</code>\n"
         f"🛑 <b>Stop-Loss:</b> <code>{s['sl']}</code>\n"
-        f"🎯 <b>Take-Profit:</b> <code>{s['tp']}</code>\n"
-        f"⚖️ <b>R:R:</b> {s['rr']}   •   <b>Риск:</b> {s['risk']}\n"
+        f"🎯 <b>Take-Profit:</b> <code>{s['tps']}</code>\n"
+        f"⚖️ <b>Риск %:</b> {s['risk_pct']}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🧠 <i>{s['comment']}</i>"
     )
@@ -98,12 +97,3 @@ async def show_signal_details(callback: types.CallbackQuery):
 
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
 
-
-@router.callback_query(F.data.startswith("remind_"))
-async def remind_signal(callback: types.CallbackQuery):
-    await callback.answer("⏰ Напоминание установлено!", show_alert=True)
-
-
-@router.callback_query(F.data.startswith("fav_"))
-async def add_favorite(callback: types.CallbackQuery):
-    await callback.answer("⭐ Добавлено в избранное", show_alert=True)
