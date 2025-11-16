@@ -5,7 +5,6 @@ from backend.database import Base, engine
 from backend.routers import signals, users, subscriptions
 from backend import models
 
-import backend.delete_tables   # ← ДОБАВЬ ЭТО
 
 # Важно: импортировать модели, чтобы SQLAlchemy их зарегистрировал
 from backend import models
