@@ -8,7 +8,7 @@ router = APIRouter(
     tags=["signals"]
 )
 
-@router.get("/")
+@router.get("")
 def get_signals(
     market: str = None,
     symbol: str = None,
