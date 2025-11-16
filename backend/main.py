@@ -3,12 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import Base, engine
 from backend.routers import signals, users, subscriptions
+
+# Важно: импортировать модели, чтобы SQLAlchemy их зарегистрировал
 from backend import models
 
 # ===========================
 #   Создаём таблицы в PostgreSQL
 # ===========================
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 # ===========================
 #   Инициализация FastAPI
@@ -43,3 +45,4 @@ app.include_router(subscriptions.router)
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "CryptoSignalBot API is running 🚀"}
+

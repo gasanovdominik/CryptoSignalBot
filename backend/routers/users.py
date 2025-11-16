@@ -1,20 +1,37 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from backend import crud, schemas
-from backend.database import SessionLocal
 
-router = APIRouter(prefix="/users", tags=["Users"])
+from backend.database import get_db
+from backend import models
+from backend.schemas import UserCreate, UserOut
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+)
 
-@router.post("/", response_model=schemas.UserOut)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing = crud.get_user_by_tg(db, user.telegram_id)
-    if existing:
-        return existing
-    return crud.create_user(db, user)
+
+# ===== POST /users — создать или найти по tg_id =====
+@router.post("/", response_model=UserOut)
+def create_or_get_user(data: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.tg_id == data.tg_id).first()
+    if user:
+        # обновим базовую инфу (username/full_name/lang/tz)
+        for field, value in data.dict().items():
+            if value is not None:
+                setattr(user, field, value)
+    else:
+        user = models.User(
+            tg_id=data.tg_id,
+            username=data.username,
+            full_name=data.full_name,
+            email=data.email,
+            lang=data.lang,
+            tz=data.tz,
+        )
+        db.add(user)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
