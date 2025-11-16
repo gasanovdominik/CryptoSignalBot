@@ -2,13 +2,11 @@ import asyncio
 import os
 import requests
 from aiogram import Router, types, F
-from dotenv import load_dotenv
 
 router = Router()
 
-# Загружаем BACKEND_URL из корневого .env
+# Читаем BACKEND_URL только из переменных окружения (Render)
 BACKEND_URL = os.getenv("BACKEND_URL")
-
 
 
 @router.callback_query(F.data == "menu_signals")
@@ -109,7 +107,3 @@ async def remind_signal(callback: types.CallbackQuery):
 @router.callback_query(F.data.startswith("fav_"))
 async def add_favorite(callback: types.CallbackQuery):
     await callback.answer("⭐ Добавлено в избранное", show_alert=True)
-
-
-
-
