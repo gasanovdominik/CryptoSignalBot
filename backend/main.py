@@ -5,7 +5,6 @@ from backend.database import Base, engine
 from backend.routers import signals, users, subscriptions
 from backend import models
 
-import backend.create_signals_table
 
 
 # Важно: импортировать модели, чтобы SQLAlchemy их зарегистрировал
