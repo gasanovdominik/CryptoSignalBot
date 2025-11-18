@@ -2,13 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import Base, engine
-from backend.routers import signals, users, subscriptions
-from backend import models
+from backend.routers import signals_router, users_router, subscriptions_router
+
 
 
 
 # Важно: импортировать модели, чтобы SQLAlchemy их зарегистрировал
-from backend import models
 
 # ===========================
 #   Создаём таблицы в PostgreSQL
@@ -38,9 +37,9 @@ app.add_middleware(
 # ===========================
 #   Подключение роутеров
 # ===========================
-app.include_router(signals.router)
-app.include_router(users.router)
-app.include_router(subscriptions.router)
+app.include_router(signals_router)
+app.include_router(users_router)
+app.include_router(subscriptions_router)
 
 # ===========================
 #   Тестовый корневой эндпоинт

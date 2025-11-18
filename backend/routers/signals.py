@@ -10,8 +10,34 @@ router = APIRouter(
     tags=["signals"],
 )
 
+# ===== GET /signals — основной эндпоинт =====
+@router.get("/", response_model=list[SignalOut])
+def get_signals(
+    market: str | None = None,
+    symbol: str | None = None,
+    tf: str | None = None,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Signal)
 
-# ===== GET /signals/feed — лента сигналов =====
+    if market:
+        query = query.filter(models.Signal.market == market)
+    if symbol:
+        query = query.filter(models.Signal.symbol == symbol)
+    if tf:
+        query = query.filter(models.Signal.tf == tf)
+
+    signals = (
+        query.order_by(models.Signal.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return signals
+
+
+# ===== GET /signals/feed — второстепенный =====
 @router.get("/feed", response_model=list[SignalOut])
 def get_signals_feed(
     market: str | None = None,
@@ -38,7 +64,7 @@ def get_signals_feed(
     return signals
 
 
-# ===== POST /signals — создать сигнал (admin) =====
+# ===== POST /signals — создать сигнал =====
 @router.post("/", response_model=SignalOut)
 def create_signal(
     data: SignalCreate,
@@ -51,7 +77,7 @@ def create_signal(
     return signal
 
 
-# ===== PUT /signals/{id} — обновить сигнал =====
+# ===== PUT /signals/{id} =====
 @router.put("/{signal_id}", response_model=SignalOut)
 def update_signal(
     signal_id: int,
@@ -80,5 +106,6 @@ def delete_signal(signal_id: int, db: Session = Depends(get_db)):
     db.delete(signal)
     db.commit()
     return {"status": "ok", "deleted_id": signal_id}
+
 
 
