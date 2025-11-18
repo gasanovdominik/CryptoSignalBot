@@ -11,7 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("❌ DATABASE_URL is not set!")
 
-# В DATABASE_URL уже есть g ?sslmode=require, поэтому дополнительные connect_args не нужны
+# В DATABASE_URL уже есть  ?sslmode=require, поэтому дополнительные connect_args не нужны
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,

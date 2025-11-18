@@ -42,7 +42,7 @@ app.include_router(users_router)
 app.include_router(subscriptions_router)
 
 # ===========================
-#   Тестовый корневой эндпоинт g
+#   Тестовый корневой эндпоинт
 # ===========================
 @app.get("/")
 async def root():
