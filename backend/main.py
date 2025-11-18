@@ -48,3 +48,16 @@ app.include_router(subscriptions_router)
 async def root():
     return {"status": "ok", "message": "CryptoSignalBot API is running 🚀"}
 
+from sqlalchemy import text
+from backend.database import engine
+
+@app.get("/debug-db")
+async def debug_db():
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            value = list(result)[0][0]
+        return {"ok": True, "result": value}
+    except Exception as e:
+        # Временно возвращаем текст ошибки наружу, чтобы понять, что именно падает
+        return {"ok": False, "error": repr(e)}
