@@ -33,7 +33,7 @@ async def debug_db():
             value = list(result)[0][0]
         return {"ok": True, "result": value}
     except Exception as e:
-        # Временно возвращаем текст ошибки наружу, чтобы понять, что именно падает
+        # Временно возвращаесм текст ошибки наружу, чтобы понять, что именно падает
         return {"ok": False, "error": repr(e)}
 
 # ===========================
