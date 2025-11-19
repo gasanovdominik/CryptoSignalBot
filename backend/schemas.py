@@ -81,3 +81,4 @@ class SignalOut(SignalBase):
 
     class Config:
         from_attributes = True
+
