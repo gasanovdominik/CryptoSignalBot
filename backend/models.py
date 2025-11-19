@@ -15,6 +15,16 @@ from datetime import datetime
 
 from backend.database import Base
 
+from sqlalchemy import Enum as PgEnum
+import enum
+
+class UserRole(enum.Enum):
+    guest = "guest"
+    trial = "trial"
+    subscriber = "subscriber"
+    expired = "expired"
+    banned = "banned"
+    admin = "admin"
 
 # ==========================
 # Users
@@ -30,7 +40,8 @@ class User(Base):
 
     lang = Column(String(5), default="ru")
     tz = Column(String(64), default="Europe/Berlin")
-    role = Column(String(16), default="user")                    # user / admin
+    role = Column(PgEnum(UserRole, name="user_role"), default=UserRole.guest)
+                    # user / admin
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

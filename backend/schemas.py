@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     lang: Optional[str] = "ru"
     tz: Optional[str] = "Europe/Berlin"
-
+    role: Optional[str] = "guest"
 
 class UserOut(BaseModel):
     id: int
