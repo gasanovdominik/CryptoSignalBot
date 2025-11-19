@@ -21,7 +21,7 @@ app = FastAPI(
 def on_startup():
     init_db()   # <-- создаёт таблицы после загрузки моделей
 
-
+# force redeploy
 # ============================
 #  Debug endpoint
 # ============================
