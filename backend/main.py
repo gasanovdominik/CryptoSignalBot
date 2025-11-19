@@ -1,30 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.database import Base, engine
-from backend.routers import signals_router, users_router, subscriptions_router
+from backend.database import init_db
+from backend.routers.signals import router as signals_router
+from backend.routers.users import router as users_router
+from backend.routers.subscriptions import router as subscriptions_router
+from sqlalchemy import text
+from backend.database import engine
 
-
-
-
-# Важно: импортировать модели, чтобы SQLAlchemy их зарегистрировал
-
-# ===========================
-#   Создаём таблицы в PostgreSQL
-# ===========================
-Base.metadata.create_all(bind=engine)
-
-# ===========================
-#   Инициализация FastAPI
-# ===========================
 app = FastAPI(
     title="CryptoSignalBot API",
     version="1.0.0",
     description="Backend API для CryptoSignalBot (FastAPI + PostgreSQL)"
 )
-from sqlalchemy import text
-from backend.database import engine
 
+# ============================
+#  Создание таблиц ПРАВИЛЬНО
+# ============================
+@app.on_event("startup")
+def on_startup():
+    init_db()   # <-- создаёт таблицы после загрузки моделей
+
+
+# ============================
+#  Debug endpoint
+# ============================
 @app.get("/debug-db")
 async def debug_db():
     try:
@@ -33,12 +33,12 @@ async def debug_db():
             value = list(result)[0][0]
         return {"ok": True, "result": value}
     except Exception as e:
-        # Временно возвращаесм текст ошибки наружу, чтобы понять, что именно падает
         return {"ok": False, "error": repr(e)}
 
-# ===========================
-#   CORS — разрешить запросы от бота
-# ===========================
+
+# ============================
+#   CORS
+# ============================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,16 +47,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===========================
-#   Подключение роутеров
-# ===========================
+
+# ============================
+#   Routers
+# ============================
 app.include_router(signals_router)
 app.include_router(users_router)
 app.include_router(subscriptions_router)
 
-# ===========================
-#   Тестовый корневой эндпоинт
-# ===========================
+
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "CryptoSignalBot API is running 🚀"}
