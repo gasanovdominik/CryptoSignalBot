@@ -5,6 +5,7 @@ from backend.database import init_db
 from backend.routers.signals import router as signals_router
 from backend.routers.users import router as users_router
 from backend.routers.subscriptions import router as subscriptions_router
+from backend.routers.profiles import router as profiles_router
 from sqlalchemy import text
 from backend.database import engine
 
@@ -54,7 +55,7 @@ app.add_middleware(
 app.include_router(signals_router)
 app.include_router(users_router)
 app.include_router(subscriptions_router)
-
+app.include_router(profiles_router)
 
 @app.get("/")
 async def root():
