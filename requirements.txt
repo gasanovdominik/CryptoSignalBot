@@ -6,3 +6,4 @@ psycopg2-binary
 requests
 aiogram==3.10.0
 pydantic==2.6.4
+httpx
