@@ -1,37 +1,40 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
-
-import httpx
 
 from backend.database import get_db
 from backend import models
 from backend.schemas import NewsOut
+from backend.acl import ensure_user_can_view_signals
 
 router = APIRouter(
     prefix="/news",
     tags=["news"]
 )
 
-CRYPTO_PANIC_API_URL = "https://cryptopanic.com/api/v1/posts/"
-CRYPTO_PANIC_API_KEY = ""   # <-- вставь сюда ключ, когда появится
-
 
 # ============================
-# GET /news — список новостей
+# GET /news
 # ============================
 @router.get("/", response_model=list[NewsOut])
 def get_news(
     limit: int = 20,
     symbol: str | None = None,
     tag: str | None = None,
-    db: Session = Depends(get_db)
+    user_id: int | None = None,
+    tg_id: int | None = None,
+    db: Session = Depends(get_db),
 ):
+    """
+    Новости доступны только подписчикам.
+    """
+
+    ensure_user_can_view_signals(user_id=user_id, tg_id=tg_id, db=db)
+
     query = db.query(models.News)
 
     if symbol:
         query = query.filter(models.News.symbols.contains([symbol]))
-
     if tag:
         query = query.filter(models.News.tags.contains([tag]))
 
@@ -40,117 +43,71 @@ def get_news(
         .limit(limit)
         .all()
     )
+
     return news
 
 
-# ================================
-# GET /news/latest — последние N
-# ================================
+# ============================
+# GET /news/latest
+# ============================
 @router.get("/latest", response_model=list[NewsOut])
 def get_latest_news(
     limit: int = 10,
-    db: Session = Depends(get_db)
+    user_id: int | None = None,
+    tg_id: int | None = None,
+    db: Session = Depends(get_db),
 ):
+    """
+    Лента последних новостей.
+    Только при активной подписке.
+    """
+
+    ensure_user_can_view_signals(user_id=user_id, tg_id=tg_id, db=db)
+
     news = (
         db.query(models.News)
         .order_by(models.News.published_at.desc())
         .limit(limit)
         .all()
     )
+
     return news
 
 
-# =========================================
-# POST /news/refresh — загрузить из CryptoPanic
-# =========================================
-@router.post("/refresh")
-def refresh_news(db: Session = Depends(get_db)):
-    """
-    Загружает свежие новости из CryptoPanic и записывает в БД.
-    """
-
-    if not CRYPTO_PANIC_API_KEY:
-        raise HTTPException(500, "CryptoPanic API KEY is not set")
-
-    params = {
-        "auth_token": CRYPTO_PANIC_API_KEY,
-        "filter": "news",
-        "kind": "news",
-        "public": "true"
-    }
-
-    try:
-        response = httpx.get(CRYPTO_PANIC_API_URL, params=params, timeout=10)
-        data = response.json()
-    except Exception as e:
-        raise HTTPException(500, f"CryptoPanic request failed: {repr(e)}")
-
-    posts = data.get("results", [])
-
-    added = 0
-
-    for p in posts:
-        # Защита от дублей по URL
-        exists = (
-            db.query(models.News)
-            .filter(models.News.url == p["url"])
-            .first()
-        )
-        if exists:
-            continue
-
-        news_item = models.News(
-            source="CryptoPanic",
-            title=p.get("title"),
-            url=p.get("url"),
-            symbols=p.get("currencies") or None,
-            tags=p.get("tags") or None,
-            published_at=datetime.fromisoformat(p["published_at"].replace("Z", "+00:00"))
-                if p.get("published_at") else None,
-            summary=p.get("description")
-        )
-
-        db.add(news_item)
-        added += 1
-
-    db.commit()
-
-    return {"status": "ok", "added": added}
-# ================================
-# GET /news/feed — фильтр по ТЗ
-# ================================
+# ============================
+# GET /news/feed
+# ============================
 @router.get("/feed", response_model=list[NewsOut])
 def news_feed(
     symbol: str | None = None,
     tag: str | None = None,
     since: str | None = None,
     limit: int = 50,
-    db: Session = Depends(get_db)
+    user_id: int | None = None,
+    tg_id: int | None = None,
+    db: Session = Depends(get_db),
 ):
     """
-    Лента новостей по ТЗ:
-    - фильтр по символу (symbols[])
-    - фильтр по тегу (tags[])
-    - фильтр по дате (published_at > since)
+    Фид новостей.
+    Доступ только по активной подписке.
     """
+
+    ensure_user_can_view_signals(user_id=user_id, tg_id=tg_id, db=db)
 
     query = db.query(models.News)
 
-    # --- фильтр символов ---
     if symbol:
         query = query.filter(models.News.symbols.contains([symbol]))
 
-    # --- фильтр тегов ---
     if tag:
         query = query.filter(models.News.tags.contains([tag]))
 
-    # --- фильтр по дате ---
     if since:
         try:
-            since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
-        except Exception:
-            raise HTTPException(400, "Invalid 'since' format. Use ISO format.")
-        query = query.filter(models.News.published_at > since_dt)
+            dt = datetime.fromisoformat(since)
+            query = query.filter(models.News.published_at > dt)
+        except:
+            pass
 
     news = (
         query.order_by(models.News.published_at.desc())

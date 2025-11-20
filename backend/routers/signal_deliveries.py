@@ -28,18 +28,16 @@ def mark_delivered(
 ):
     """
     Помечает сигнал как доставленный пользователю.
-    Идемпотентно по (signal_id, user_id).
     Доступ только при активной подписке.
     """
 
-    # ACL + получение пользователя (бросит 403/404 при проблеме)
+    # ACL — проверка подписки
     user = ensure_user_can_view_signals(
         user_id=payload.user_id,
         tg_id=None,
         db=db,
     )
 
-    # проверяем, что есть такой сигнал
     signal = db.query(models.Signal).filter(models.Signal.id == payload.signal_id).first()
     if not signal:
         raise HTTPException(404, "Signal not found")
@@ -106,7 +104,6 @@ def mark_seen(
     seen_at = payload.seen_at or now
 
     if delivery is None:
-        # создаём запись на лету
         delivery = models.SignalDelivery(
             signal_id=payload.signal_id,
             user_id=user.id,
@@ -132,13 +129,15 @@ def get_user_deliveries(
     db: Session = Depends(get_db),
 ):
     """
-    Лента доставленных сигналов для пользователя
-    (вместе с данными самого сигнала).
+    Лента доставленных сигналов.
     Доступ только при активной подписке.
     """
 
-    # ACL
-    ensure_user_can_view_signals(user_id=user_id, tg_id=None, db=db)
+    ensure_user_can_view_signals(
+        user_id=user_id,
+        tg_id=None,
+        db=db,
+    )
 
     deliveries = (
         db.query(models.SignalDelivery)
