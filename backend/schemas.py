@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     tz: Optional[str] = "Europe/Berlin"
     role: Optional[str] = "guest"
 
+
 class UserOut(BaseModel):
     id: int
     tg_id: int
@@ -31,13 +32,13 @@ class UserOut(BaseModel):
 # ============ SUBSCRIPTIONS ============
 class SubscriptionCreate(BaseModel):
     user_id: int
-    plan_code: str                        # например: basic / pro / trial
+    plan_code: str                        # basic / pro / trial
 
 
 class SubscriptionOut(BaseModel):
     id: int
     user_id: int
-    plan_id: int
+    plan_id: Optional[int]
     status: str
     start_at: Optional[datetime]
     end_at: Optional[datetime]
@@ -86,7 +87,6 @@ class SignalUpdate(BaseModel):
     image_url: Optional[str] = None
 
 
-
 class SignalOut(SignalBase):
     id: int
     created_by: Optional[int] = None
@@ -96,17 +96,16 @@ class SignalOut(SignalBase):
         from_attributes = True
 
 
-
 # ============ PAYMENTS ============
-
 class PaymentWebhookIn(BaseModel):
     user_id: Optional[int] = None
     tg_id: Optional[int] = None
+
     amount_cents: int
-    currency: str         # TON / XTR / USD
-    provider: str         # telegram_wallet / stars
+    currency: str
+    provider: str
     tx_id: str
-    status: str           # pending / success / failed / refunded
+    status: str
     extra: Optional[Dict[str, Any]] = None
 
 
@@ -123,8 +122,8 @@ class PaymentOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ============ NEWS ============
 
+# ============ NEWS ============
 class NewsBase(BaseModel):
     source: str
     title: str
@@ -140,3 +139,31 @@ class NewsOut(NewsBase):
 
     class Config:
         from_attributes = True
+
+
+# ============ SIGNAL DELIVERIES ============
+class SignalDeliveredIn(BaseModel):
+    signal_id: int
+    user_id: int
+    delivered_at: Optional[datetime] = None
+
+
+class SignalSeenIn(BaseModel):
+    signal_id: int
+    user_id: int
+    seen_at: Optional[datetime] = None
+
+
+class SignalDeliveryOut(BaseModel):
+    id: int
+    signal_id: int
+    user_id: int
+    delivered_at: Optional[datetime]
+    seen_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class SignalDeliveryWithSignal(SignalDeliveryOut):
+    signal: SignalOut

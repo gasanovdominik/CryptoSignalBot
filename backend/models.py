@@ -19,6 +19,7 @@ from backend.database import Base
 from sqlalchemy import Enum as PgEnum
 import enum
 
+
 class UserRole(enum.Enum):
     guest = "guest"
     trial = "trial"
@@ -27,6 +28,7 @@ class UserRole(enum.Enum):
     banned = "banned"
     admin = "admin"
 
+
 # ==========================
 # Users
 # ==========================
@@ -34,7 +36,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
-    tg_id = Column(BigInteger, unique=True, index=True)          # Telegram ID
+    tg_id = Column(BigInteger, unique=True, index=True)  # Telegram ID
     username = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     email = Column(String, nullable=True)
@@ -42,12 +44,13 @@ class User(Base):
     lang = Column(String(5), default="ru")
     tz = Column(String(64), default="Europe/Berlin")
     role = Column(PgEnum(UserRole, name="user_role"), default=UserRole.guest)
-                    # user / admin
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
     profile = relationship("Profile", back_populates="user", uselist=False)
     subscriptions = relationship("Subscription", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+    signal_deliveries = relationship("SignalDelivery", back_populates="user")
 
 
 class Profile(Base):
@@ -93,12 +96,12 @@ class Subscription(Base):
 
     user_id = Column(
         BigInteger,
-        ForeignKey("users.id", ondelete="CASCADE")
+        ForeignKey("users.id", ondelete="CASCADE"),
     )
-
     plan_id = Column(
         Integer,
-        ForeignKey("plans.id", ondelete="SET NULL")
+        ForeignKey("plans.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     status = Column(String(16), default="inactive")   # inactive / trial / active / expired / banned
@@ -111,7 +114,7 @@ class Subscription(Base):
 
 
 # ==========================
-# Payments (для будущих вебхуков)
+# Payments (для вебхуков)
 # ==========================
 class Payment(Base):
     __tablename__ = "payments"
@@ -122,14 +125,14 @@ class Payment(Base):
         BigInteger,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
 
     amount_cents = Column(Integer, nullable=False)
-    currency = Column(String, nullable=False)  # TON / XTR / USD
-    provider = Column(String, nullable=False)  # telegram_wallet / stars
-    tx_id = Column(String, nullable=False)  # уникальный ID транзакции
-    status = Column(String, default="pending")  # pending / success / failed / refunded
+    currency = Column(String, nullable=False)              # TON / XTR / USD
+    provider = Column(String, nullable=False)              # telegram_wallet / stars
+    tx_id = Column(String, nullable=False)                 # уникальный ID транзакции
+    status = Column(String, default="pending")             # pending / success / failed / refunded
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -137,7 +140,8 @@ class Payment(Base):
         UniqueConstraint("provider", "tx_id", name="uq_provider_txid"),
     )
 
-    user = relationship("User", backref="payments")
+    user = relationship("User", back_populates="payments")
+
 
 # ==========================
 # Signals (главная таблица по ТЗ)
@@ -167,26 +171,41 @@ class Signal(Base):
     created_by = Column(
         BigInteger,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
     )
-    # admin_id (в будущем FK на users)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     deliveries = relationship("SignalDelivery", back_populates="signal")
 
 
+# ==========================
+# SignalDelivery (доставка сигналов)
+# ==========================
 class SignalDelivery(Base):
     __tablename__ = "signal_deliveries"
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
 
-    signal_id = Column(BigInteger, ForeignKey("signals.id"))
-    user_id = Column(BigInteger, ForeignKey("users.id"))
+    signal_id = Column(
+        BigInteger,
+        ForeignKey("signals.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     delivered_at = Column(DateTime, nullable=True)
     seen_at = Column(DateTime, nullable=True)
 
+    __table_args__ = (
+        UniqueConstraint("signal_id", "user_id", name="uq_signal_user_delivery"),
+    )
+
     signal = relationship("Signal", back_populates="deliveries")
+    user = relationship("User", back_populates="signal_deliveries")
 
 
 # ==========================
