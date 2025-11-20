@@ -9,6 +9,7 @@ from backend.routers.profiles import router as profiles_router
 from backend.routers.payments import router as payments_router
 from backend.routers.news import router as news_router
 from backend.routers.subscriptions_admin import router as subs_admin_router
+from backend.routers.signals_admin import router as signals_admin_router
 
 from sqlalchemy import text
 from backend.database import engine
@@ -63,6 +64,7 @@ app.include_router(profiles_router)
 app.include_router(payments_router)
 app.include_router(news_router)
 app.include_router(subs_admin_router)
+app.include_router(signals_admin_router)
 
 @app.get("/")
 async def root():
