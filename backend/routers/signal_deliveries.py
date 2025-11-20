@@ -10,6 +10,7 @@ from backend.schemas import (
     SignalDeliveryOut,
     SignalDeliveryWithSignal,
 )
+from backend.acl import ensure_user_can_view_signals
 
 router = APIRouter(
     prefix="/signal-deliveries",
@@ -28,13 +29,17 @@ def mark_delivered(
     """
     Помечает сигнал как доставленный пользователю.
     Идемпотентно по (signal_id, user_id).
+    Доступ только при активной подписке.
     """
 
-    # проверяем, что есть такой пользователь и сигнал
-    user = db.query(models.User).filter(models.User.id == payload.user_id).first()
-    if not user:
-        raise HTTPException(404, "User not found")
+    # ACL + получение пользователя (бросит 403/404 при проблеме)
+    user = ensure_user_can_view_signals(
+        user_id=payload.user_id,
+        tg_id=None,
+        db=db,
+    )
 
+    # проверяем, что есть такой сигнал
     signal = db.query(models.Signal).filter(models.Signal.id == payload.signal_id).first()
     if not signal:
         raise HTTPException(404, "Signal not found")
@@ -43,7 +48,7 @@ def mark_delivered(
         db.query(models.SignalDelivery)
         .filter(
             models.SignalDelivery.signal_id == payload.signal_id,
-            models.SignalDelivery.user_id == payload.user_id,
+            models.SignalDelivery.user_id == user.id,
         )
         .first()
     )
@@ -57,7 +62,7 @@ def mark_delivered(
     else:
         delivery = models.SignalDelivery(
             signal_id=payload.signal_id,
-            user_id=payload.user_id,
+            user_id=user.id,
             delivered_at=delivered_at,
             seen_at=None,
         )
@@ -78,14 +83,21 @@ def mark_seen(
 ):
     """
     Помечает сигнал как просмотренный пользователем.
+    Доступ только при активной подписке.
     """
 
-    # опционально можно не требовать, чтобы запись уже существовала
+    # ACL
+    user = ensure_user_can_view_signals(
+        user_id=payload.user_id,
+        tg_id=None,
+        db=db,
+    )
+
     delivery = (
         db.query(models.SignalDelivery)
         .filter(
             models.SignalDelivery.signal_id == payload.signal_id,
-            models.SignalDelivery.user_id == payload.user_id,
+            models.SignalDelivery.user_id == user.id,
         )
         .first()
     )
@@ -97,7 +109,7 @@ def mark_seen(
         # создаём запись на лету
         delivery = models.SignalDelivery(
             signal_id=payload.signal_id,
-            user_id=payload.user_id,
+            user_id=user.id,
             delivered_at=None,
             seen_at=seen_at,
         )
@@ -122,7 +134,11 @@ def get_user_deliveries(
     """
     Лента доставленных сигналов для пользователя
     (вместе с данными самого сигнала).
+    Доступ только при активной подписке.
     """
+
+    # ACL
+    ensure_user_can_view_signals(user_id=user_id, tg_id=None, db=db)
 
     deliveries = (
         db.query(models.SignalDelivery)

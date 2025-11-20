@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend import models
 from backend.schemas import SignalCreate, SignalUpdate, SignalOut
+from backend.acl import ensure_user_can_view_signals
 
 router = APIRouter(
     prefix="/signals",
     tags=["signals"],
 )
+
 
 # ===== GET /signals — основной эндпоинт =====
 @router.get("/", response_model=list[SignalOut])
@@ -17,8 +19,17 @@ def get_signals(
     symbol: str | None = None,
     tf: str | None = None,
     limit: int = 20,
+    user_id: int | None = None,
+    tg_id: int | None = None,
     db: Session = Depends(get_db),
 ):
+    """
+    Основная выдача сигналов.
+    Доступ только при активной подписке (ACL).
+    """
+    # ACL
+    ensure_user_can_view_signals(user_id=user_id, tg_id=tg_id, db=db)
+
     query = db.query(models.Signal)
 
     if market:
@@ -44,8 +55,16 @@ def get_signals_feed(
     symbol: str | None = None,
     tf: str | None = None,
     limit: int = 20,
+    user_id: int | None = None,
+    tg_id: int | None = None,
     db: Session = Depends(get_db),
 ):
+    """
+    Фид сигналов для бота / клиентов.
+    Тот же ACL, что и у /signals.
+    """
+    ensure_user_can_view_signals(user_id=user_id, tg_id=tg_id, db=db)
+
     query = db.query(models.Signal)
 
     if market:
@@ -64,12 +83,13 @@ def get_signals_feed(
     return signals
 
 
-# ===== POST /signals — создать сигнал =====
+# ===== POST /signals — создать сигнал (общий, не админский) =====
 @router.post("/", response_model=SignalOut)
 def create_signal(
     data: SignalCreate,
     db: Session = Depends(get_db),
 ):
+    # Этот эндпоинт можно оставить для внутренних нужд или тестов.
     signal = models.Signal(**data.dict())
     db.add(signal)
     db.commit()
@@ -106,6 +126,3 @@ def delete_signal(signal_id: int, db: Session = Depends(get_db)):
     db.delete(signal)
     db.commit()
     return {"status": "ok", "deleted_id": signal_id}
-
-
-
