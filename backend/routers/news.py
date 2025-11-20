@@ -116,3 +116,46 @@ def refresh_news(db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "ok", "added": added}
+# ================================
+# GET /news/feed — фильтр по ТЗ
+# ================================
+@router.get("/feed", response_model=list[NewsOut])
+def news_feed(
+    symbol: str | None = None,
+    tag: str | None = None,
+    since: str | None = None,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Лента новостей по ТЗ:
+    - фильтр по символу (symbols[])
+    - фильтр по тегу (tags[])
+    - фильтр по дате (published_at > since)
+    """
+
+    query = db.query(models.News)
+
+    # --- фильтр символов ---
+    if symbol:
+        query = query.filter(models.News.symbols.contains([symbol]))
+
+    # --- фильтр тегов ---
+    if tag:
+        query = query.filter(models.News.tags.contains([tag]))
+
+    # --- фильтр по дате ---
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        except Exception:
+            raise HTTPException(400, "Invalid 'since' format. Use ISO format.")
+        query = query.filter(models.News.published_at > since_dt)
+
+    news = (
+        query.order_by(models.News.published_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return news
