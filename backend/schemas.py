@@ -70,8 +70,21 @@ class SignalCreate(SignalBase):
     pass
 
 
-class SignalUpdate(SignalBase):
-    pass
+class SignalUpdate(BaseModel):
+    market: Optional[str] = None
+    symbol: Optional[str] = None
+    tf: Optional[str] = None
+    direction: Optional[str] = None
+    entry: Optional[Dict[str, Any]] = None
+    sl: Optional[float] = None
+    tps: Optional[List[float]] = None
+    risk_rr: Optional[float] = None
+    leverage: Optional[int] = None
+    risk_pct: Optional[float] = None
+    indicators: Optional[Dict[str, Any]] = None
+    comment: Optional[str] = None
+    image_url: Optional[str] = None
+
 
 
 class SignalOut(SignalBase):
@@ -82,3 +95,30 @@ class SignalOut(SignalBase):
     class Config:
         from_attributes = True
 
+
+
+# ============ PAYMENTS ============
+
+class PaymentWebhookIn(BaseModel):
+    user_id: Optional[int] = None
+    tg_id: Optional[int] = None
+    amount_cents: int
+    currency: str         # TON / XTR / USD
+    provider: str         # telegram_wallet / stars
+    tx_id: str
+    status: str           # pending / success / failed / refunded
+    extra: Optional[Dict[str, Any]] = None
+
+
+class PaymentOut(BaseModel):
+    id: int
+    user_id: int
+    amount_cents: int
+    currency: str
+    provider: str
+    tx_id: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

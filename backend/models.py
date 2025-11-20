@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Numeric,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.orm import relationship
@@ -90,8 +91,15 @@ class Subscription(Base):
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
 
-    user_id = Column(BigInteger, ForeignKey("users.id"))
-    plan_id = Column(Integer, ForeignKey("plans.id"))
+    user_id = Column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+
+    plan_id = Column(
+        Integer,
+        ForeignKey("plans.id", ondelete="SET NULL")
+    )
 
     status = Column(String(16), default="inactive")   # inactive / trial / active / expired / banned
     start_at = Column(DateTime, nullable=True)
@@ -110,14 +118,26 @@ class Payment(Base):
 
     id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
 
-    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=True)
-    amount_cents = Column(Integer)
-    currency = Column(String)
-    provider = Column(String)                         # telegram_wallet / stars / manual
-    tx_id = Column(String, nullable=True)
-    status = Column(String, default="pending")        # pending / success / failed / refunded
+    user_id = Column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    amount_cents = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)  # TON / XTR / USD
+    provider = Column(String, nullable=False)  # telegram_wallet / stars
+    tx_id = Column(String, nullable=False)  # уникальный ID транзакции
+    status = Column(String, default="pending")  # pending / success / failed / refunded
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    __table_args__ = (
+        UniqueConstraint("provider", "tx_id", name="uq_provider_txid"),
+    )
+
+    user = relationship("User", backref="payments")
 
 # ==========================
 # Signals (главная таблица по ТЗ)
@@ -144,7 +164,12 @@ class Signal(Base):
     comment = Column(Text, nullable=True)
     image_url = Column(String, nullable=True)         # PNG-график
 
-    created_by = Column(BigInteger, nullable=True)    # admin_id (в будущем FK на users)
+    created_by = Column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True
+    )
+    # admin_id (в будущем FK на users)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     deliveries = relationship("SignalDelivery", back_populates="signal")

@@ -88,7 +88,7 @@ def update_signal(
     if not signal:
         raise HTTPException(status_code=404, detail="Signal not found")
 
-    for key, value in data.dict().items():
+    for key, value in data.dict(exclude_unset=True).items():
         setattr(signal, key, value)
 
     db.commit()
