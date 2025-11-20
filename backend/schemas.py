@@ -122,3 +122,21 @@ class PaymentOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ============ NEWS ============
+
+class NewsBase(BaseModel):
+    source: str
+    title: str
+    url: str
+    symbols: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    published_at: Optional[datetime] = None
+    summary: Optional[str] = None
+
+
+class NewsOut(NewsBase):
+    id: int
+
+    class Config:
+        from_attributes = True
