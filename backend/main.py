@@ -12,6 +12,7 @@ from backend.routers.subscriptions_admin import router as subs_admin_router
 from backend.routers.signals_admin import router as signals_admin_router
 from backend.routers.users_me import router as users_me_router
 from backend.routers.signal_deliveries import router as signal_deliveries_router
+from backend.routers.notifications import router as notifications_router
 
 
 
@@ -71,6 +72,7 @@ app.include_router(subs_admin_router)
 app.include_router(signals_admin_router)
 app.include_router(users_me_router)
 app.include_router(signal_deliveries_router)
+app.include_router(notifications_router)
 
 @app.get("/")
 async def root():

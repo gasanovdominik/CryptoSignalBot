@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend import models
 from backend.schemas import SignalCreate, SignalOut
+from backend.utils.notifications import create_notification
 
 router = APIRouter(
     prefix="/admin/signals",
@@ -367,4 +368,13 @@ def admin_create_signal(
     db.add(signal)
     db.commit()
     db.refresh(signal)
+    # 🔔 Уведомление админу о новом сигнале
+    create_notification(
+        db=db,
+        user_id=admin_id,
+        type="new_signal",
+        title=f"Новый сигнал по {signal.symbol}",
+        message=f"{signal.direction.upper()} {signal.symbol} @ {signal.entry}"
+    )
+
     return signal

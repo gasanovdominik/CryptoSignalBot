@@ -11,6 +11,7 @@ from backend.schemas import (
     SignalDeliveryWithSignal,
 )
 from backend.acl import ensure_user_can_view_signals
+from backend.utils.notifications import create_notification
 
 router = APIRouter(
     prefix="/signal-deliveries",
@@ -116,6 +117,15 @@ def mark_seen(
 
     db.commit()
     db.refresh(delivery)
+    # 🔔 уведомление пользователю
+    create_notification(
+        db=db,
+        user_id=user.id,
+        type="signal_delivered",
+        title="Сигнал доставлен",
+        message=f"Сигнал #{payload.signal_id} был доставлен"
+    )
+
     return delivery
 
 

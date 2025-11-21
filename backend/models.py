@@ -225,3 +225,28 @@ class News(Base):
 
     published_at = Column(DateTime, nullable=True)
     summary = Column(Text, nullable=True)
+# ==========================
+# Notifications
+# ==========================
+from sqlalchemy.sql import func
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    type = Column(String(64), nullable=False)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+
+    is_read = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # связь опциональная
+    user = relationship("User", backref="notifications")

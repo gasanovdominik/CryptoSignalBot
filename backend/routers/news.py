@@ -6,6 +6,7 @@ from backend.database import get_db
 from backend import models
 from backend.schemas import NewsOut
 from backend.acl import ensure_user_can_view_signals
+from backend.utils.notifications import create_notification
 
 router = APIRouter(
     prefix="/news",
