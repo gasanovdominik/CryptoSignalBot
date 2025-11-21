@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Router, types, F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from utils.mock_data import signals
+from bot.utils.mock_data import signals
 
 router = Router()
 
